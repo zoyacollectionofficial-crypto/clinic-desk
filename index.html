@@ -213,7 +213,9 @@ input,select,textarea{transition:border-color .13s, box-shadow .13s}
 #themeBtn{background:rgba(255,255,255,.1)!important;color:#fff!important;border-color:rgba(255,255,255,.28)!important}
 #sidebar .side-foot .small{color:#7d9cbd!important}
 /* --- Hamburger (3-line) menu --- */
-#sidebar{position:fixed;left:-252px;top:0;height:100vh;width:240px;transition:left .22s ease;z-index:120}
+#sidebar{position:fixed;left:-252px;top:0;height:100vh;height:100dvh;width:240px;transition:left .22s ease;z-index:120}
+#nav{min-height:0}
+#sidebar .side-foot{flex-shrink:0}
 #sidebar.open{left:0}
 #topbar{display:flex;align-items:center;gap:12px;margin-bottom:16px;background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);border:1px solid rgba(255,255,255,.65);border-radius:14px;padding:10px 14px;box-shadow:0 6px 20px rgba(6,40,69,.08)}
 [data-theme="dark"] #topbar{background:rgba(22,33,44,.55);border-color:rgba(255,255,255,.12)}
@@ -243,7 +245,10 @@ input,select,textarea{transition:border-color .13s, box-shadow .13s}
 @media print{
   body>*{display:none!important}
   body>#printArea{display:block!important}
-  @page{size:A4;margin:9mm}
+  html,body{margin:0!important;padding:0!important;background:#fff!important}
+  #printArea{margin:0!important;padding:0!important}
+  .rx{min-height:282mm;margin:0!important}
+  @page{size:A4;margin:7.5mm}
 }
 .rx{font-family:"Segoe UI",Arial,sans-serif;color:#14324a;width:100%;position:relative;display:flex;flex-direction:column;min-height:275mm}
 .rx *{box-sizing:border-box}
@@ -522,7 +527,7 @@ table.rx-meds td{padding:8.5px 8px}
           <div><label>Facebook Page Name</label><input id="sFb" placeholder="e.g. Dr Tahir endocrinologist"></div>
           <div class="full"><label>Clinic Slogan (optional)</label><input id="sSlogan"></div>
           <div class="full"><label>Prescription Footer Text</label><input id="sFooter" placeholder="e.g. Please bring this prescription on your next visit"></div>
-          <div><label>Clinic Logo</label><input id="sLogo" type="file" accept="image/*"></div>
+          <div><label>Clinic Logo</label><input id="sLogo" type="file" accept="image/*"><img id="sLogoPrev" alt="" style="display:none;width:74px;height:74px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:10px;margin-top:8px;padding:3px"></div>
           <div><label>Doctor Signature</label><input id="sSignature" type="file" accept="image/*"></div>
         </div>
         <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap">
@@ -617,7 +622,7 @@ if(!S.settings) S = defaultState();
   // strength ko medicine naam ke saath mila do (alag strength field khatam)
   S.medicines.forEach(m=>{ if(m.strength){ if(!m.name.includes(m.strength)) m.name = (m.name+" "+m.strength).trim(); m.strength = ""; } });
 })();
-function persistOnly(){ localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+function persistOnly(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){ toast("Device storage is full — this change could not be saved","err"); } }
 function save(){ S._rev = (S._rev||0) + 1; S.updatedAt = Date.now(); persistOnly(); schedulePush(); }
 function normalizeState(x){
   const DEF = defaultState();
@@ -1300,13 +1305,45 @@ function loadSettings(){
   $("sRegNo").value = st.regNo||""; $("sClinicAddress").value = st.clinicAddress||"";
   $("sClinicPhones").value = st.clinicPhones||""; $("sSlogan").value = st.slogan||""; $("sFooter").value = st.footer||"";
   $("sYt").value = st.socialYoutube||""; $("sFb").value = st.socialFacebook||"";
+  syncLogoPreview();
   $("sideClinic").textContent = st.clinicName||"Clinic Management System";
   if($("topClinic")) $("topClinic").textContent = st.clinicName||"";
   if($("sideDocName")){ $("sideDocName").textContent = st.doctorName||"Doctor"; $("sideDocRole").textContent = (st.specialization||"").split("—")[0].trim() || st.specialization || ""; $("sideDocAvatar").textContent = initials((st.doctorName||"Dr").replace(/^Dr\s*/i,"")); }
 }
 function readFileAsDataURL(input, cb){ const f = input.files && input.files[0]; if(!f) return; const r = new FileReader(); r.onload = ()=>cb(r.result); r.readAsDataURL(f); }
-$("sLogo").addEventListener("change", e=> readFileAsDataURL(e.target, d=>{ S.settings.logo = d; save(); toast("Logo saved","ok"); }));
-$("sSignature").addEventListener("change", e=> readFileAsDataURL(e.target, d=>{ S.settings.signature = d; save(); toast("Signature saved","ok"); }));
+/* Tasveer ko chhota karke save karte hain — bari phone photo raw lagane se device storage bhar jati thi aur logo save hi nahi hota tha */
+function processImageFile(input, cb){
+  const f = input.files && input.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    const raw = r.result;
+    try{
+      const cv = document.createElement("canvas");
+      const ctx = cv.getContext && cv.getContext("2d");
+      if(!ctx){ cb(raw); return; }
+      const img = new Image();
+      img.onload = ()=>{
+        try{
+          const MAX = 512;
+          const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+          if(!w || !h){ cb(raw); return; }
+          const sc = Math.min(1, MAX / Math.max(w, h));
+          if(sc >= 1 && String(raw).length < 200000){ cb(raw); return; }
+          cv.width = Math.max(1, Math.round(w * sc)); cv.height = Math.max(1, Math.round(h * sc));
+          ctx.drawImage(img, 0, 0, cv.width, cv.height);
+          const out = cv.toDataURL(f.type === "image/png" ? "image/png" : "image/jpeg", 0.88);
+          cb(out && out.length < String(raw).length ? out : raw);
+        }catch(_){ cb(raw); }
+      };
+      img.onerror = ()=>cb(raw);
+      img.src = raw;
+    }catch(_){ cb(raw); }
+  };
+  r.readAsDataURL(f);
+}
+function syncLogoPreview(){ const p = $("sLogoPrev"); if(!p) return; if(S.settings.logo){ p.src = S.settings.logo; p.style.display = "block"; } else { p.style.display = "none"; p.removeAttribute("src"); } }
+$("sLogo").addEventListener("change", e=> processImageFile(e.target, d=>{ S.settings.logo = d; save(); syncLogoPreview(); toast("Logo saved","ok"); }));
+$("sSignature").addEventListener("change", e=> processImageFile(e.target, d=>{ S.settings.signature = d; save(); toast("Signature saved","ok"); }));
 $("saveSettingsBtn").addEventListener("click", ()=>{
   const st = S.settings;
   st.clinicName = $("sClinicName").value.trim(); st.doctorName = $("sDoctorName").value.trim();
