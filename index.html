@@ -251,7 +251,9 @@ input,select,textarea{transition:border-color .13s, box-shadow .13s}
   body>#printArea{display:block!important}
   html,body{margin:0!important;padding:0!important;background:#fff!important}
   #printArea{margin:0!important;padding:0!important}
-  .rx{height:282mm;min-height:282mm;max-height:282mm;overflow:hidden;margin:0!important}
+  .rx{margin:0!important;padding-bottom:38mm}
+  .rx-footer{position:fixed;left:0;right:0;bottom:0;padding-left:14px;background:#fff;z-index:2}
+  .rx-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%)}
   .rx-head{padding:11px 14px}
   .rx-pgrid{padding:8px 12px;margin-bottom:10px}
   .rx-block{overflow:hidden}
@@ -1264,11 +1266,13 @@ window.printVisit = function(vid){
         ${v.items.length ? `<table class="rx-meds"><thead><tr><th style="width:52px">Type</th><th>Medicine</th><th style="width:86px">Duration</th><th style="width:218px">Instruction</th></tr></thead><tbody>${meds}</tbody></table>` : '<div class="rx-txt">No medicines prescribed.</div>'}
       </div>
     </div>
+    <div class="rx-footer">
     <div class="rx-sigrow">
       <div class="rx-foot-note">${esc(st.footer||"")}</div>
       <div class="rx-sign"><div class="line">Signature: ${esc(st.doctorName||"")}</div><div>${esc(st.qualifications||"")}</div></div>
     </div>
     <div class="rx-addr-foot"><svg width="13" height="13" viewBox="0 0 24 24" style="vertical-align:-2px"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z" fill="#0a3d6e"/></svg> <b>Clinic Address:</b> ${esc(st.clinicAddress||"")}</div>
+    </div>
   </div>`;
   setTimeout(()=>window.print(), 60);
 };
