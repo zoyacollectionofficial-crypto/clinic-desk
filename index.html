@@ -251,7 +251,16 @@ input,select,textarea{transition:border-color .13s, box-shadow .13s}
   body>#printArea{display:block!important}
   html,body{margin:0!important;padding:0!important;background:#fff!important}
   #printArea{margin:0!important;padding:0!important}
-  .rx{min-height:282mm;margin:0!important}
+  .rx{height:282mm;min-height:282mm;max-height:282mm;overflow:hidden;margin:0!important}
+  .rx-head{padding:11px 14px}
+  .rx-pgrid{padding:8px 12px;margin-bottom:10px}
+  .rx-block{overflow:hidden}
+  table.rx-meds{font-size:12px}
+  table.rx-meds th{padding:5px 8px}
+  table.rx-meds td{padding:5px 8px}
+  .rx-urdu-inst{font-size:13px;line-height:1.6}
+  .rx-sigrow{padding-top:14px}
+  .rx-addr-foot{margin-top:10px}
   @page{size:A4;margin:7.5mm}
 }
 .rx{font-family:"Segoe UI",Arial,sans-serif;color:#14324a;width:100%;position:relative;display:flex;flex-direction:column;min-height:275mm}
